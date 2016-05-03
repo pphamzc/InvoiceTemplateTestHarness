@@ -310,8 +310,11 @@ namespace InvoiceTemplateTestHarness
 
         private void btnSetLocation_Click(object sender, EventArgs e)
         {
+            saveFileDialog1.Filter =
+            "PDF files (*.pdf)|*.pdf|All files (*.*)|*.*";
             if (saveFileDialog1.ShowDialog() == DialogResult.OK)
             {
+          
                 txbOutput.Text = saveFileDialog1.FileName;
             }
         }

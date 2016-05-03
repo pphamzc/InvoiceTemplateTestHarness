@@ -159,7 +159,7 @@
             // 
             // btnSetLocation
             // 
-            this.btnSetLocation.Location = new System.Drawing.Point(659, 261);
+            this.btnSetLocation.Location = new System.Drawing.Point(659, 271);
             this.btnSetLocation.Name = "btnSetLocation";
             this.btnSetLocation.Size = new System.Drawing.Size(75, 23);
             this.btnSetLocation.TabIndex = 12;
@@ -216,7 +216,7 @@
             this.Controls.Add(this.txbHeader);
             this.Controls.Add(this.label1);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "Invoice Template Test Harness";
             this.ResumeLayout(false);
             this.PerformLayout();
 

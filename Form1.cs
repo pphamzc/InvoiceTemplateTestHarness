@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Text;
 using Model;
 using Razor;
 using HiQPdf;
@@ -26,7 +22,11 @@ namespace InvoiceTemplateTestHarness
             InitializeComponent();
         }
 
-
+        /// <summary>
+        /// Create Invoice action
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnCreateInvoice_Click(object sender, EventArgs e)
         {
             DocumentTemplate template = new DocumentTemplate();
@@ -40,6 +40,10 @@ namespace InvoiceTemplateTestHarness
             TemplateOption templateOptions = templateOptionsList[0];
 
             CreatePDFBasedOnCsHtmlTemplate(template, txbOutput.Text, templateOptions);
+
+            
+
+            MessageBox.Show(txbOutput.Text + " was created successfully.");
         }
 
 
@@ -93,6 +97,73 @@ namespace InvoiceTemplateTestHarness
             }
             catch (Exception ex)
             {
+                MessageBox.Show("Error : " + ex.InnerException.Message);
+                throw;
+            }
+            finally
+            {
+                // Closing and disposing the file stream object
+                if (objFileStream != null)
+                {
+                    objFileStream.Close();
+                    objFileStream.Dispose();
+                }
+            }
+        }
+
+        public bool CreateHtmlBasedOnCsHtmlTemplate(DocumentTemplate documentTemplate, string filePathToSave, TemplateOption templateOption = null)
+        {
+            FileStream objFileStream = null;
+
+            try
+            {
+                string headerHtml = string.Empty;
+                string bodyHtml = string.Empty;
+                string footerHtml = string.Empty;
+
+
+                documentTemplate.InvoicePdfGenerationDetails = new InvoicePdfGenerationDetails() { ImagesFolderRootPath = "" };
+
+                if (!string.IsNullOrWhiteSpace(documentTemplate.HeaderCsHtml))
+                {
+                    // Getting the header html
+                    headerHtml = RazorBoss.GetHtmlFromRazorView(documentTemplate.HeaderCsHtml, documentTemplate.InvoicePdfGenerationDetails);
+                }
+
+                if (!string.IsNullOrWhiteSpace(documentTemplate.BodyCsHtml))
+                {
+                    // Getting the body Html
+                    bodyHtml = RazorBoss.GetHtmlFromRazorView(documentTemplate.BodyCsHtml, documentTemplate.InvoicePdfGenerationDetails);
+                }
+
+                if (!string.IsNullOrWhiteSpace(documentTemplate.FooterCsHtml))
+                {
+                    // Getting the footer html
+                    footerHtml = RazorBoss.GetHtmlFromRazorView(documentTemplate.FooterCsHtml, documentTemplate.InvoicePdfGenerationDetails);
+                }
+
+                // We write out html here :
+                StringBuilder buffer = new StringBuilder();
+                buffer.Append("<Html><head></head><body>");
+                buffer.Append(headerHtml);
+                buffer.Append(bodyHtml);
+                buffer.Append(footerHtml);
+                buffer.Append("</body></Html>");
+                // we get html 
+                byte[] blob = Encoding.ASCII.GetBytes(buffer.ToString());
+
+
+
+
+                // Creating the file stream object and writing to the file
+                objFileStream = new FileStream(filePathToSave, FileMode.Create);
+                objFileStream.Write(blob, 0, blob.Length);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error : " + ex.InnerException.Message);
                 throw;
             }
             finally
@@ -120,6 +191,8 @@ namespace InvoiceTemplateTestHarness
             
 
             HtmlToPdf htmlToPdfConverter = new HtmlToPdf();
+            PdfDocumentControl doc = htmlToPdfConverter.Document;
+            doc.FontEmbedding = true;
             this.templateOption = templateOption;
             if (templateOption != null)
             {
@@ -136,22 +209,33 @@ namespace InvoiceTemplateTestHarness
                     htmlToPdfConverter.Document.PageOrientation = PdfPageOrientation.Landscape;
                 }
             }
-            htmlToPdfConverter.SerialNumber = "o+vK8vPHxe/KwdHC0dqWjZuDkoOSg5KTmpKDkJKNkpGNmpqamg==";
+            htmlToPdfConverter.SerialNumber = "bad==";
 
             // set header and footer
             SetHeader(htmlToPdfConverter.Document, headerHtml, baseUrl, templateOption);
             SetFooter(htmlToPdfConverter.Document, footerHtml, baseUrl, templateOption);
+
+            
+
+            
             return htmlToPdfConverter.ConvertHtmlToMemory(bodyHtml, baseUrl);
 
         }
 
-        void htmlToPdfConverter_PageLayoutingEvent(PdfPageLayoutingParams eventParams)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="eventParams"></param>
+        private void htmlToPdfConverter_PageLayoutingEvent(PdfPageLayoutingParams eventParams)
         {
             if ((templateOption != null) && (templateOption.PageMargin != null))
             {
                 PdfPage page = eventParams.PdfPage;
                 PdfLine leftLine = new PdfLine(new System.Drawing.PointF(leftStartXPoint, 0), new System.Drawing.PointF(leftStartXPoint, page.DrawableRectangle.Height));
                 PdfLine rightLine = new PdfLine(new System.Drawing.PointF((float)(page.DrawableRectangle.Width - 2.5), 0), new System.Drawing.PointF((float)(page.DrawableRectangle.Width - 2.5), page.DrawableRectangle.Height));
+                PdfFont font = page.Document.CreateStandardFont(PdfStandardFont.TimesRoman);
+
 
                 //Border Color for the PDF 
                 if (!string.IsNullOrEmpty(templateOption.PageMargin.Color))
@@ -213,11 +297,8 @@ namespace InvoiceTemplateTestHarness
 
             }
             // add page numbering in a text element
-            System.Drawing.Font pageNumberingFont =
-                new System.Drawing.Font(new System.Drawing.FontFamily("Times New Roman"),
-                            8, System.Drawing.GraphicsUnit.Point);
-            PdfText pageNumberingText = new PdfText(headerWidth - 60, 0,
-                    "Page {CrtPage} of {PageCount}", pageNumberingFont);
+            System.Drawing.Font pageNumberingFont = new System.Drawing.Font(new System.Drawing.FontFamily("Times New Roman"), 8, System.Drawing.GraphicsUnit.Point);
+            PdfText pageNumberingText = new PdfText(headerWidth - 60, 0,"Page {CrtPage} of {PageCount}", pageNumberingFont);
             pageNumberingText.EmbedSystemFont = true;
             pdfDocumentControl.Header.Layout(pageNumberingText);
             pdfDocumentControl.Header.Layout(headerPdfHtml);

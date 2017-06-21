@@ -1,4 +1,3 @@
-using Microsoft.Web.WebPages.OAuth;
 
 namespace InvoiceTemplateTestHarness
 {
